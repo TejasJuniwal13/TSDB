@@ -1,0 +1,6 @@
+build/
+a.out
+tsdb.wal
+include/engine/key_encoder.hpp.gch
+include/engine/wal.hpp.gch
+tests/
