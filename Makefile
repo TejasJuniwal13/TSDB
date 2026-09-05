@@ -3,7 +3,7 @@ CXX = g++
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -pedantic -O3 -Iinclude
 
 # All object files required by the project
-OBJS = build/key_encoder.o build/db.o build/wal.o
+OBJS = build/key_encoder.o build/db.o build/wal.o build/memtable.o
 
 .PHONY: all clean
 
