@@ -1,4 +1,5 @@
 #include "engine/db.hpp"
+#include "engine/key_encoder.hpp"
 #include <iostream>
 
 namespace TSDB {
@@ -7,7 +8,7 @@ Database::Database(const std::string& wal_path) : wal_(wal_path) {
     // 1. RECOVERY: Replay WAL binary entries on startup into MemTable
     auto recovered_records = wal_.recover();
     for (const auto& [key, val] : recovered_records) {
-        memtable_[key] = val;
+        memtable_.put(key,val);
     }
     if (!recovered_records.empty()) {
         std::cout << "[Database] Successfully restored " << recovered_records.size() 
@@ -35,7 +36,36 @@ void Database::put(const std::string& metric_name,
     wal_.append(encoded_key, encoded_val);
 
     // Step 4: Insert raw byte vectors into MemTable ONLY after disk confirms durability
-    memtable_[encoded_key] = encoded_val;
+    memtable_.put(encoded_key,encoded_val);
+
+    if(memtable_.size_bytes() >= MEMTABLE_THRESHOLD){
+        //flushes to SSTable 
+    }
 }
+
+bool Database::get(const std::string& metric_name,
+                   const std::string& host_name,
+                   uint64_t timestamp,
+                   double& value_out) {
+uint32_t metric_id = catalog_.get_or_create(metric_name);
+uint32_t host_id = catalog_.get_or_create(host_name);
+
+SliceKey key_struct{metric_id,host_id,timestamp};
+std::vector<uint8_t> encoded_key = key_struct.encode();
+
+// SliceValue val_struct{value_out};
+
+std::vector<uint8_t> encoded_val;
+
+if(memtable_.get(encoded_key,encoded_val)){
+   SliceValue decoded_val = SliceValue::decode(encoded_val.data());
+   value_out = decoded_val.value;
+   return true;
+}
+
+return false;
+                
+}                   
+
 
 } // namespace TSDB
